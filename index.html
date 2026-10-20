@@ -249,7 +249,7 @@
     
     <!-- Hero Background Layer: Dedicated Roadster Testing Video -->
     <div class="absolute inset-0 z-0 overflow-hidden">
-      <video id="hero-roadster-video" autoplay muted loop playsinline class="w-full h-full object-cover object-center filter brightness-95">
+      <video id="hero-roadster-video" autoplay loop playsinline class="w-full h-full object-cover object-center filter brightness-95">
         <source src="assets/vidssave.com The Ramp _ Roadster 1080P.mp4" type="video/mp4">
       </video>
       <!-- Subtle Dark Overlay for Optimal Contrast & Text Readability -->
@@ -296,10 +296,9 @@
       <div class="flex items-center">
         <button id="sound-toggle" aria-label="Toggle Video Audio" class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 bg-black/40 hover:bg-black/70 backdrop-blur-md text-white/80 hover:text-white text-[11px] font-mono tracking-widest uppercase transition-all">
           <svg id="sound-icon" class="w-3.5 h-3.5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
           </svg>
-          <span id="sound-text">SOUND OFF</span>
+          <span id="sound-text">SOUND ON</span>
         </button>
       </div>
 
@@ -1034,35 +1033,57 @@
       });
     });
 
-    // 3. Hero Video Playback & Sound Control
+    // 3. Hero Video Playback & Sound Control (Default: Sound ON)
     const heroVideo = document.getElementById('hero-roadster-video');
     const soundToggle = document.getElementById('sound-toggle');
     const soundText = document.getElementById('sound-text');
     const soundIcon = document.getElementById('sound-icon');
 
+    function updateSoundUI(isMuted) {
+      if (soundText) soundText.textContent = isMuted ? 'SOUND OFF' : 'SOUND ON';
+      if (soundIcon) {
+        soundIcon.innerHTML = isMuted
+          ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>`
+          : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>`;
+      }
+    }
+
     if (heroVideo) {
-      heroVideo.play().catch(() => {});
+      // Default to unmuted with sound
+      heroVideo.muted = false;
+      heroVideo.volume = 1.0;
+      updateSoundUI(false);
+
+      const playPromise = heroVideo.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // If browser blocks unmuted autoplay without prior interaction,
+          // temporarily mute so video starts playing, then immediately unmute on first interaction.
+          heroVideo.muted = true;
+          updateSoundUI(true);
+          heroVideo.play().catch(() => {});
+
+          const unmuteOnInteraction = () => {
+            heroVideo.muted = false;
+            heroVideo.volume = 1.0;
+            heroVideo.play().catch(() => {});
+            updateSoundUI(false);
+            ['click', 'touchstart', 'keydown', 'scroll'].forEach(evt => {
+              window.removeEventListener(evt, unmuteOnInteraction);
+            });
+          };
+
+          ['click', 'touchstart', 'keydown', 'scroll'].forEach(evt => {
+            window.addEventListener(evt, unmuteOnInteraction, { once: true, passive: true });
+          });
+        });
+      }
     }
 
     if (soundToggle && heroVideo) {
       soundToggle.addEventListener('click', () => {
         heroVideo.muted = !heroVideo.muted;
-        if (heroVideo.muted) {
-          if (soundText) soundText.textContent = 'SOUND OFF';
-          if (soundIcon) {
-            soundIcon.innerHTML = `
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
-            `;
-          }
-        } else {
-          if (soundText) soundText.textContent = 'SOUND ON';
-          if (soundIcon) {
-            soundIcon.innerHTML = `
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
-            `;
-          }
-        }
+        updateSoundUI(heroVideo.muted);
       });
     }
 
